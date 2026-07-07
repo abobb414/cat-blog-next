@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "咪咪的小窝 🐱",
-  description: "全职干饭人 / 专业捕蚊官 / 拆家工程师 — 咪咪的个人博客",
+  title: "二头的小窝",
+  description: "全职干饭人 / 专业捕蚊官 / 拆家工程师 — 二头的个人博客",
 };
 
 export default function RootLayout({
