@@ -1,25 +1,51 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { d1Query, generateId } from '@/lib/cloudflare';
 
+interface CommentRow {
+  id: string;
+  post_id: string;
+  author: string;
+  content: string;
+  created_at: string;
+}
+
+interface PostRow {
+  id: string;
+  publish_date: string;
+  content: string;
+  image: string | null;
+  likes: number;
+}
+
+interface LikeRow {
+  post_id: string;
+}
+
+type PostMutationBody = Record<string, string | null | undefined>;
+
+function getErrorMessage(err: unknown) {
+  return err instanceof Error ? err.message : 'Unknown error';
+}
+
 // GET: 获取所有动态 + 评论 + 当前用户点赞状态
 export async function GET(request: NextRequest) {
   try {
     const visitorId = request.headers.get('x-visitor-id') || 'anonymous';
 
-    const posts = await d1Query('SELECT * FROM posts ORDER BY publish_date DESC');
-    const comments = await d1Query('SELECT * FROM comments ORDER BY created_at ASC');
-    const likedRows = await d1Query('SELECT post_id FROM likes WHERE visitor_id = ?', [visitorId]);
-    const likedSet = new Set(likedRows.map((r: any) => r.post_id));
+    const posts = await d1Query('SELECT * FROM posts ORDER BY publish_date DESC') as unknown as PostRow[];
+    const comments = await d1Query('SELECT * FROM comments ORDER BY created_at ASC') as unknown as CommentRow[];
+    const likedRows = await d1Query('SELECT post_id FROM likes WHERE visitor_id = ?', [visitorId]) as unknown as LikeRow[];
+    const likedSet = new Set(likedRows.map((r) => r.post_id));
 
-    const fullPosts = posts.map((post: any) => ({
+    const fullPosts = posts.map((post) => ({
       ...post,
-      comments: comments.filter((c: any) => c.post_id === post.id),
+      comments: comments.filter((c) => c.post_id === post.id),
       hasLiked: likedSet.has(post.id),
     }));
 
     return NextResponse.json(fullPosts);
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  } catch (err: unknown) {
+    return NextResponse.json({ error: getErrorMessage(err) }, { status: 500 });
   }
 }
 
@@ -28,8 +54,6 @@ export async function POST(request: NextRequest) {
   try {
     const { content, image, publish_date } = await request.json();
     const id = generateId('post');
-    const d = new Date(publish_date);
-    const timeLabel = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}`;
 
     await d1Query(
       'INSERT INTO posts (id, content, image, publish_date, likes) VALUES (?, ?, ?, ?, 0)',
@@ -37,15 +61,15 @@ export async function POST(request: NextRequest) {
     );
 
     return NextResponse.json({ success: true, id });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  } catch (err: unknown) {
+    return NextResponse.json({ error: getErrorMessage(err) }, { status: 500 });
   }
 }
 
 // PUT: 点赞切换 / 编辑 / 删除 / 评论操作
 export async function PUT(request: NextRequest) {
   try {
-    const body = await request.json();
+    const body = await request.json() as PostMutationBody;
     const { action } = body;
     const visitorId = request.headers.get('x-visitor-id') || 'anonymous';
 
@@ -101,7 +125,7 @@ export async function PUT(request: NextRequest) {
     }
 
     return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  } catch (err: unknown) {
+    return NextResponse.json({ error: getErrorMessage(err) }, { status: 500 });
   }
 }

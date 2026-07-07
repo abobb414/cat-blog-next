@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { d1Query } from '@/lib/cloudflare';
 
+function getErrorMessage(err: unknown) {
+  return err instanceof Error ? err.message : 'Unknown error';
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { password } = await request.json();
@@ -11,7 +15,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true });
     }
     return NextResponse.json({ success: false, error: '暗号错误' }, { status: 401 });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  } catch (err: unknown) {
+    return NextResponse.json({ error: getErrorMessage(err) }, { status: 500 });
   }
 }

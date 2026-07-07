@@ -9,6 +9,26 @@ import {
 // ==================== 类型 ====================
 interface Comment { id: string; post_id: string; author: string; content: string; created_at: string; }
 interface Post { id: string; publish_date: string; content: string; image: string | null; likes: number; comments: Comment[]; hasLiked: boolean; }
+interface CatProfile { name: string; title: string; avatar: string; bio: string; age: string; weight: string; favoriteSnack: string; }
+
+const defaultProfile: CatProfile = {
+  name: '二头 (Ertou)',
+  title: '全职干饭人 / 呆傻唐氏小猫 / 木头猫',
+  avatar: 'https://pub-43ab46cd14c94349a0bf225e0b768dc9.r2.dev/1783427709553-ertou-profile-from-browser.jpg',
+  bio: "专注于人类驯化研究长达两年。熟练掌握'凌晨三点跑酷'、'用屁股对着镜头'以及'假装听不懂人话'等核心技术。",
+  age: '7 岁',
+  weight: '4.5 kg',
+  favoriteSnack: '冻干高能鸡肉粒',
+};
+
+const profileFields: Array<{ key: keyof CatProfile; label: string; placeholder: string; multiline: boolean }> = [
+  { key: 'name', label: '名字', placeholder: '二头 (Ertou)', multiline: false },
+  { key: 'title', label: '头衔', placeholder: '全职干饭人 / ...', multiline: false },
+  { key: 'bio', label: '简介', placeholder: '介绍一下...', multiline: true },
+  { key: 'age', label: '年龄', placeholder: '7 岁', multiline: false },
+  { key: 'weight', label: '体重', placeholder: '4.5 kg', multiline: false },
+  { key: 'favoriteSnack', label: '最爱零食', placeholder: '冻干高能鸡肉粒', multiline: false },
+];
 
 // ==================== Visitor ID ====================
 function getVisitorId(): string {
@@ -49,6 +69,37 @@ function imageToBase64(file: File): Promise<string> {
   });
 }
 
+function PostImage({ src }: { src: string }) {
+  const [orientation, setOrientation] = useState<'landscape' | 'portrait' | 'square' | null>(null);
+
+  const handleLoad = (event: React.SyntheticEvent<HTMLImageElement>) => {
+    const image = event.currentTarget;
+    if (image.naturalHeight > image.naturalWidth * 1.05) {
+      setOrientation('portrait');
+    } else if (image.naturalWidth > image.naturalHeight * 1.05) {
+      setOrientation('landscape');
+    } else {
+      setOrientation('square');
+    }
+  };
+
+  const imageClass =
+    orientation === 'portrait'
+      ? 'mx-auto max-h-[72vh] w-auto max-w-full object-contain'
+      : 'h-auto max-h-[560px] w-full object-contain';
+
+  return (
+    <div className="rounded-xl bg-stone-50 overflow-hidden border border-stone-100">
+      <img
+        src={src}
+        alt="动态配图"
+        onLoad={handleLoad}
+        className={`block ${imageClass}`}
+      />
+    </div>
+  );
+}
+
 // ==================== 主组件 ====================
 export default function CatBlog() {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -66,7 +117,7 @@ export default function CatBlog() {
   const [passwordInput, setPasswordInput] = useState('');
   const [loginError, setLoginError] = useState('');
   const [newContent, setNewContent] = useState('');
-  const [newDate, setNewDate] = useState('');
+  const [newDate, setNewDate] = useState(() => new Date().toISOString().slice(0, 16));
   const [newImagePreview, setNewImagePreview] = useState('');
   const [newImageUrl, setNewImageUrl] = useState('');
   const [editContent, setEditContent] = useState('');
@@ -77,16 +128,10 @@ export default function CatBlog() {
   const [commentAuthors, setCommentAuthors] = useState<Record<string, string>>({});
   const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
 
-  // Profile (从 localStorage 读，仅前端展示用)
-  const [profile, setProfile] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('cat-profile');
-      if (stored) return JSON.parse(stored);
-    }
-    return { name: '咪咪 (Mimi)', title: '全职干饭人 / 专业捕蚊官 / 拆家工程师', avatar: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=500&auto=format&fit=crop&q=80', bio: "专注于人类驯化研究长达两年。熟练掌握'凌晨三点跑酷'、'用屁股对着镜头'以及'假装听不懂人话'等核心技术。", age: '1.5 岁', weight: '4.5 kg', favoriteSnack: '冻干高能鸡肉粒' };
-  });
-  const [profileForm, setProfileForm] = useState(profile);
+  const [profile, setProfile] = useState<CatProfile>(defaultProfile);
+  const [profileForm, setProfileForm] = useState<CatProfile>(defaultProfile);
 
   const postRefs = useRef<{ [key: string]: HTMLElement | null }>({});
   const visitorId = useRef('');
@@ -102,15 +147,31 @@ export default function CatBlog() {
     }
   }, []);
 
-  useEffect(() => {
-    visitorId.current = getVisitorId();
-    fetchPosts().finally(() => setLoading(false));
-    setNewDate(new Date().toISOString().slice(0, 16));
-  }, [fetchPosts]);
+  const fetchProfile = useCallback(async () => {
+    try {
+      const res = await fetch('/api/profile', { cache: 'no-store' });
+      if (!res.ok) throw new Error('Failed to fetch profile');
+      const data: CatProfile = await res.json();
+      setProfile(data);
+      setProfileForm(data);
+    } catch (err) {
+      console.error('Failed to fetch profile:', err);
+    }
+  }, []);
 
   useEffect(() => {
-    localStorage.setItem('cat-profile', JSON.stringify(profile));
-  }, [profile]);
+    let cancelled = false;
+    visitorId.current = getVisitorId();
+    async function loadInitialData() {
+      await Promise.all([fetchPosts(), fetchProfile()]);
+      if (!cancelled) setLoading(false);
+    }
+    void loadInitialData();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchPosts, fetchProfile]);
 
   // 登录验证
   const handleLogin = async (e: React.FormEvent) => {
@@ -157,7 +218,11 @@ export default function CatBlog() {
   // 评论
   const toggleComments = (postId: string) => {
     const s = new Set(expandedComments);
-    s.has(postId) ? s.delete(postId) : s.add(postId);
+    if (s.has(postId)) {
+      s.delete(postId);
+    } else {
+      s.add(postId);
+    }
     setExpandedComments(s);
   };
 
@@ -265,7 +330,7 @@ export default function CatBlog() {
         if (target === 'new') setNewImageUrl(data.url);
         else setEditImageUrl(data.url);
       }
-    } catch (err) {
+    } catch {
       alert('图片上传失败 😿');
     } finally {
       setIsUploading(false);
@@ -274,11 +339,45 @@ export default function CatBlog() {
 
   // Profile
   const openProfileEditor = () => { setProfileForm({ ...profile }); setShowProfileEditor(true); };
-  const handleSaveProfile = () => { setProfile({ ...profileForm }); setShowProfileEditor(false); };
+  const handleSaveProfile = async () => {
+    setIsSavingProfile(true);
+    try {
+      const res = await fetch('/api/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(profileForm),
+      });
+      if (!res.ok) throw new Error('保存失败');
+      const savedProfile: CatProfile = await res.json();
+      setProfile(savedProfile);
+      setProfileForm(savedProfile);
+      setShowProfileEditor(false);
+    } catch (err) {
+      console.error(err);
+      alert('档案保存失败，请重试 😿');
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
   const handleProfileAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setProfileForm({ ...profileForm, avatar: await imageToBase64(file) });
+    setIsUploading(true);
+    const base64 = await imageToBase64(file);
+    setProfileForm((current) => ({ ...current, avatar: base64 }));
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (!res.ok || !data.url) throw new Error(data.error || '上传失败');
+      setProfileForm((current) => ({ ...current, avatar: data.url }));
+    } catch (err) {
+      console.error(err);
+      alert('头像上传失败，请重试 😿');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const scrollToPost = (id: string) => { postRefs.current[id]?.scrollIntoView({ behavior: 'smooth', block: 'center' }); };
@@ -429,7 +528,7 @@ export default function CatBlog() {
                         <span className="md:hidden bg-amber-100 text-amber-800 px-2 py-0.5 rounded text-[10px]">{getTimeLabel(post.publish_date)}</span>
                       </div>
                       <div className="px-6 pt-2 pb-4 text-stone-700 leading-relaxed text-[15px] whitespace-pre-line">{post.content}</div>
-                      {post.image && <div className="px-6 pb-4"><img src={post.image} alt="动态配图" className="w-full h-64 object-cover rounded-xl bg-stone-50" /></div>}
+                      {post.image && <div className="px-6 pb-4"><PostImage src={post.image} /></div>}
                       <div className="px-6 py-3 bg-stone-50 border-t border-stone-50 flex items-center justify-between text-stone-500 text-sm">
                         <button onClick={() => handleLikeToggle(post.id)} className={`flex items-center gap-2 transition-colors ${post.hasLiked ? 'text-red-500 font-medium' : 'hover:text-red-500'}`}>
                           <Heart className={`w-4 h-4 transition-all ${post.hasLiked ? 'fill-red-500 scale-110' : ''}`} />
@@ -540,33 +639,28 @@ export default function CatBlog() {
                 </div>
                 <div className="text-xs text-stone-400">点击头像更换照片</div>
               </div>
-              {([
-                { key: 'name', label: '名字', placeholder: '咪咪 (Mimi)', multiline: false },
-                { key: 'title', label: '头衔', placeholder: '全职干饭人 / ...', multiline: false },
-                { key: 'bio', label: '简介', placeholder: '介绍一下...', multiline: true },
-                { key: 'age', label: '年龄', placeholder: '1.5 岁', multiline: false },
-                { key: 'weight', label: '体重', placeholder: '4.5 kg', multiline: false },
-                { key: 'favoriteSnack', label: '最爱零食', placeholder: '冻干高能鸡肉粒', multiline: false },
-              ]).map(({ key, label, placeholder, multiline }) => (
+              {profileFields.map(({ key, label, placeholder, multiline }) => (
                 <div key={key}>
                   <label className="text-xs font-medium text-stone-500 block mb-1">{label}</label>
                   {multiline ? (
-                    <textarea value={(profileForm as any)[key]} onChange={(e) => setProfileForm({ ...profileForm, [key]: e.target.value })} placeholder={placeholder} className="w-full px-3 py-2 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 resize-none" rows={3} />
+                    <textarea value={profileForm[key]} onChange={(e) => setProfileForm({ ...profileForm, [key]: e.target.value })} placeholder={placeholder} className="w-full px-3 py-2 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 resize-none" rows={3} />
                   ) : (
-                    <input type="text" value={(profileForm as any)[key]} onChange={(e) => setProfileForm({ ...profileForm, [key]: e.target.value })} placeholder={placeholder} className="w-full px-3 py-2 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" />
+                    <input type="text" value={profileForm[key]} onChange={(e) => setProfileForm({ ...profileForm, [key]: e.target.value })} placeholder={placeholder} className="w-full px-3 py-2 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" />
                   )}
                 </div>
               ))}
               <div className="flex justify-end gap-2 pt-2">
                 <button onClick={() => setShowProfileEditor(false)} className="px-4 py-2 bg-stone-200 text-stone-600 rounded-xl text-xs font-medium hover:bg-stone-300">取消</button>
-                <button onClick={handleSaveProfile} className="px-4 py-2 bg-orange-500 text-white rounded-xl text-xs font-medium flex items-center gap-1 hover:bg-orange-600"><Save className="w-3 h-3" /> 保存档案</button>
+                <button onClick={handleSaveProfile} disabled={isSavingProfile || isUploading} className="px-4 py-2 bg-orange-500 text-white rounded-xl text-xs font-medium flex items-center gap-1 hover:bg-orange-600 disabled:opacity-50">
+                  {isSavingProfile ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />} 保存档案
+                </button>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      <footer className="text-center text-xs text-stone-400 py-8 border-t border-stone-100">© 2026 Crafted with ❤️ for Mimi. Powered by Meow.</footer>
+      <footer className="text-center text-xs text-stone-400 py-8 border-t border-stone-100">© 2026 Crafted with love for Ertou. Powered by Meow.</footer>
     </div>
   );
 }

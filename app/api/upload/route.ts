@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { r2Upload } from '@/lib/cloudflare';
 
+function getErrorMessage(err: unknown) {
+  return err instanceof Error ? err.message : 'Unknown error';
+}
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
@@ -15,7 +19,7 @@ export async function POST(request: NextRequest) {
     const url = await r2Upload(filename, arrayBuffer, file.type);
 
     return NextResponse.json({ url });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  } catch (err: unknown) {
+    return NextResponse.json({ error: getErrorMessage(err) }, { status: 500 });
   }
 }

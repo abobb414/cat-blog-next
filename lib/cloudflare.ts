@@ -5,8 +5,16 @@ const DATABASE_ID = process.env.CLOUDFLARE_D1_DATABASE_ID!;
 const API_TOKEN = process.env.CLOUDFLARE_API_TOKEN!;
 const R2_PUBLIC_URL = process.env.CLOUDFLARE_R2_PUBLIC_URL!; // https://pub-xxx.r2.dev
 
+export type D1Row = Record<string, string | number | boolean | null>;
+
+interface CloudflareResponse<T> {
+  success: boolean;
+  errors?: unknown[];
+  result?: Array<{ results?: T[] }>;
+}
+
 // ==================== D1 Query ====================
-export async function d1Query(sql: string, params: any[] = []) {
+export async function d1Query(sql: string, params: unknown[] = []): Promise<D1Row[]> {
   const url = `https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/d1/database/${DATABASE_ID}/query`;
   const res = await fetch(url, {
     method: 'POST',
@@ -16,7 +24,7 @@ export async function d1Query(sql: string, params: any[] = []) {
     },
     body: JSON.stringify({ sql, params }),
   });
-  const data = await res.json();
+  const data = (await res.json()) as CloudflareResponse<D1Row>;
   if (!data.success) {
     throw new Error(`D1 Error: ${JSON.stringify(data.errors)}`);
   }
