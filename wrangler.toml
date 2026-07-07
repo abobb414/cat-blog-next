@@ -1,0 +1,12 @@
+name = "cat-blog-next"
+compatibility_date = "2025-04-01"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "mimi-cat-db"
+database_id = "21f9371b-6082-4732-a514-161473a96f5c"
+
+[[r2_buckets]]
+bucket_name = "mimi-cat-photos"
+binding = "BUCKET"
