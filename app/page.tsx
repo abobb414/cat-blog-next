@@ -164,7 +164,7 @@ export default function CatBlogFullMVP() {
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
   const [commentAuthors, setCommentAuthors] = useState<Record<string, string>>({});
 
-  const postRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+  const postRefs = useRef<{ [key: string]: HTMLElement | null }>({});
 
   // 初始化：从 localStorage 加载（兼容旧数据缺少 comments 字段）
   useEffect(() => {
