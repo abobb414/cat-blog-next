@@ -1,5 +1,7 @@
 # 二头的小窝
 
+<img width="1582" height="1035" alt="截屏2026-07-07 21 30 01" src="https://github.com/user-attachments/assets/a2019eef-d556-4b8e-8183-1cdee8d68c4d" />
+
 一个给二头准备的猫咪生活博客。项目使用 Next.js 部署在 Vercel，数据和图片放在 Cloudflare D1 / R2，支持在网页里登录后发布动态、上传照片、编辑猫咪档案、点赞和评论。
 
 线上地址：[https://ertou.abobb.com](https://ertou.abobb.com)
