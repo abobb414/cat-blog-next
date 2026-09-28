@@ -1,0 +1,122 @@
+@import "tailwindcss";
+
+/* 深色模式走 class 策略（html.dark），由 layout 里的内联脚本在首帧前挂好 */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ============================================================================
+   朵朵的小窝 · 设计令牌
+   ----------------------------------------------------------------------------
+   字号只保留 5 级：11 / 13 / 15 / 17 / 30
+   颜色只保留 4 族：中性（底 3 + 线 1 + 墨 3）· 主题（暖琥珀 6 阶）· 强调（红 1）
+   改样式时优先用这里的令牌，不要再直接写 amber-* / orange-* / yellow-* / stone-*。
+   深色模式 = 同名令牌在 html.dark 下换值，页面代码不需要写 dark: 变体。
+   ============================================================================ */
+
+@theme {
+  /* ---------- 中性 ---------- */
+  --color-cream: #fffbeb;        /* 页面底 */
+  --color-surface: #ffffff;      /* 卡片 / 弹窗 */
+  --color-mist: #faf7ef;         /* 卡片内的浅底（页脚条、评论区） */
+  --color-line: #f0eade;         /* 边框 / 分隔线 */
+  --color-ink: #1f1a17;          /* 主文字、深色按钮底 */
+  --color-ink-soft: #79716b;     /* 次要文字 */
+  --color-ink-faint: #a8a29e;    /* 弱化文字、占位符、装饰图标 */
+
+  /* ---------- 主题色（暖琥珀，由浅到深 5 阶） ---------- */
+  --color-brand-tint: #fdf2df;   /* 徽章底、提示框底 */
+  --color-brand-soft: #fae0a4;   /* 顶栏渐变起、hover 底 */
+  --color-brand-mild: #f6c882;   /* 顶栏渐变止 */
+  --color-brand: #e07b16;        /* 主色：按钮 / 强调 / 焦点环（配白字对比 3.0:1） */
+  --color-brand-deep: #a9560c;   /* 浅底上的强调文字（白底对比 5.2:1） */
+  --color-brand-hover: #a9560c;  /* 主色按钮 hover 底（深浅两套各给一个值） */
+
+  /* ---------- 强调 ---------- */
+  --color-accent: #e0524a;       /* 点赞、危险操作 */
+
+  /* ---------- 字号 5 级 ---------- */
+  --text-tiny: 0.6875rem;        /* 11px 角标、相对时间 */
+  --text-tiny--line-height: 1.45;
+  --text-meta: 0.8125rem;        /* 13px 次要信息、标签、按钮 */
+  --text-meta--line-height: 1.65;
+  --text-body: 0.9375rem;        /* 15px 正文、输入框 */
+  --text-body--line-height: 1.8;
+  --text-title: 1.0625rem;       /* 17px 区块 / 弹窗标题 */
+  --text-title--line-height: 1.5;
+  --text-hero: 1.875rem;         /* 30px 猫咪名字 */
+  --text-hero--line-height: 1.25;
+
+  /* ---------- 字体 ---------- */
+  /* var() 要给兜底值：--font-geist-sans 缺失时整条 font-family 会被判为无效，
+     连带后面的中文字体栈一起失效 */
+  --font-sans: var(--font-geist-sans, -apple-system), "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono, ui-monospace), ui-monospace, monospace;
+}
+
+:root {
+  color-scheme: light;
+}
+
+/* ---------- 深色模式：暖调炭色底，主题琥珀整体提亮一档 ----------
+   同名覆盖即可全站翻色；color-scheme: dark 让表单控件/滚动条一起翻 */
+html.dark {
+  color-scheme: dark;
+
+  /* ---------- 中性 ---------- */
+  --color-cream: #17130f;        /* 页面底（暖炭黑） */
+  --color-surface: #211c17;      /* 卡片 / 弹窗 */
+  --color-mist: #2a241e;         /* 卡片内的浅底（页脚条、评论区） */
+  --color-line: #38312a;         /* 边框 / 分隔线 */
+  --color-ink: #ede5da;          /* 主文字 */
+  --color-ink-soft: #a89d90;     /* 次要文字 */
+  --color-ink-faint: #6e6459;    /* 弱化文字、占位符、装饰图标 */
+
+  /* ---------- 主题色（琥珀提亮，保证深底可读） ---------- */
+  --color-brand-tint: #2f2517;   /* 徽章底、提示框底 */
+  --color-brand-soft: #4b3a1f;   /* 顶栏渐变起、hover 底 */
+  --color-brand-mild: #6b5228;   /* 顶栏渐变止 */
+  --color-brand: #e88b2e;        /* 主色：深底上提亮一档 */
+  --color-brand-deep: #f0b264;   /* 深底上的强调文字（浅琥珀） */
+  --color-brand-hover: #c76e14;  /* 按钮 hover：深色下收深一档（白字对比 3.7:1） */
+
+  /* ---------- 强调 ---------- */
+  --color-accent: #ef6a62;       /* 点赞、危险操作 */
+}
+
+body {
+  background: var(--color-cream);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* ---------- 拉绳开关 ----------
+   顶端钉住：绳子用 scaleY 伸长/回缩，拉环用同步的 translateY，
+   两者同一时长同一缓动，任意时刻都保持连接；只上下动，不左右摆 */
+@keyframes cord-rope {
+  0%   { transform: scaleY(1); }
+  28%  { transform: scaleY(1.3214); }  /* +18px */
+  55%  { transform: scaleY(0.8929); }  /* -6px 过冲 */
+  76%  { transform: scaleY(1.0536); }  /* +3px */
+  90%  { transform: scaleY(0.9821); }  /* -1px */
+  100% { transform: scaleY(1); }
+}
+@keyframes cord-ring {
+  0%   { transform: translateY(0); }
+  28%  { transform: translateY(18px); }
+  55%  { transform: translateY(-6px); }
+  76%  { transform: translateY(3px); }
+  90%  { transform: translateY(-1px); }
+  100% { transform: translateY(0); }
+}
+.cord-pulling .cord-rope {
+  animation: cord-rope 0.75s cubic-bezier(0.34, 0.02, 0.29, 1.2) both;
+  transform-origin: top;
+}
+.cord-pulling .cord-ring {
+  animation: cord-ring 0.75s cubic-bezier(0.34, 0.02, 0.29, 1.2) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cord-pulling .cord-rope,
+  .cord-pulling .cord-ring { animation: none; }
+}

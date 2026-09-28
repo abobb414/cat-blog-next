@@ -1,0 +1,12 @@
+name = "duoduo-blog"
+compatibility_date = "2025-04-01"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "duoduo-db"
+database_id = "7886c350-e8a2-403a-bb83-c8c0c2d39391"
+
+[[r2_buckets]]
+bucket_name = "duoduo-photos"
+binding = "BUCKET"
