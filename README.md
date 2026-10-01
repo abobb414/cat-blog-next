@@ -1,5 +1,10 @@
 <div align="center">
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./docs/images/logo-white.png" />
+  <img src="./docs/images/logo.png" alt="🐾 朵朵的小窝" width="124" />
+</picture>
+
 # 🐾 朵朵的小窝
 
 **一只猫咪的个人博客 · 记录每天的小事**
