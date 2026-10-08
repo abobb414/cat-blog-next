@@ -99,6 +99,44 @@ function PostImage({ src }: { src: string }) {
   );
 }
 
+/**
+ * 品牌锁合：钉在**整页**左上角（Banner 之内、内容卡片之外）。
+ *
+ * 规格照 retail.abobb.com 的 .brand-lockup 1:1 搬过来 —— 图标 28×28、gap 10px、
+ * 品牌名 14px/700/letter-spacing .02em、英文小字 10px/500/letter-spacing .04em/
+ * margin-top 4px、整行 line-height 1.1；顶栏带高 84px（窄屏 62px）、左右留白
+ * clamp(22px,5vw,76px)（窄屏 20px）⇒ 锁合距页顶恰好 27px。
+ *
+ * 两处刻意不同：① 那 14/10px 不套本站 11/13/15/17/30 的五级令牌 —— 既然要求
+ * 「字体大小也要一样」，就照搬 retail 的原值；② 颜色走本站令牌（text-ink /
+ * text-ink-soft），这样深色模式下会自动反白，retail 那边是硬编码色值。
+ *
+ * 图标直接用站点 favicon：Next 把 app/icon.svg 暴露在 /icon.svg，透明底，
+ * 内嵌 128px 位图，缩到 28px 显示不糊。
+ */
+function BrandLockup() {
+  return (
+    <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex h-[62px] items-center px-5 sm:h-[84px] sm:px-[clamp(22px,5vw,76px)]">
+      <div className="flex items-center gap-2.5">
+        <img
+          src="/icon.svg"
+          alt=""
+          aria-hidden="true"
+          width={28}
+          height={28}
+          className="block h-7 w-7 shrink-0"
+        />
+        <span className="flex flex-col leading-[1.1]">
+          <strong className="text-[14px] font-bold tracking-[0.02em] text-ink">朵朵的小窝</strong>
+          <small className="mt-1 text-[10px] font-medium tracking-[0.04em] text-ink-soft">
+            Duoduo&apos;s little nest
+          </small>
+        </span>
+      </div>
+    </div>
+  );
+}
+
 // ==================== 主组件 ====================
 export default function CatBlog() {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -490,7 +528,8 @@ export default function CatBlog() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-cream flex items-center justify-center">
+      <div className="min-h-screen bg-cream relative flex items-center justify-center">
+        <BrandLockup />
         <div className="flex items-center gap-3 text-ink-soft">
           <Loader2 className="w-5 h-5 animate-spin" />
           <span>小猫正在加载中...</span>
@@ -501,6 +540,9 @@ export default function CatBlog() {
 
   return (
     <div className="min-h-screen bg-cream text-ink font-sans selection:bg-brand-soft relative flex flex-col">
+
+      {/* 品牌锁合：整页左上角，压在 Banner 之上，不占流、不推版式 */}
+      <BrandLockup />
 
       {/* Banner */}
       <div className="h-48 w-full bg-gradient-to-br from-brand-tint via-brand-soft/75 to-brand-tint flex items-center justify-center">
